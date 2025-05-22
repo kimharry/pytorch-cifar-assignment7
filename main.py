@@ -15,20 +15,19 @@ import os
 import argparse
 
 from models import *
-from utils import progress_bar
 
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
-parser.add_argument('--num_epochs', '-n', default=200, type=int, help='number of epochs to train')
+parser.add_argument('--num_epochs', '-n', default=100, type=int, help='number of epochs to train')
 
 # Activation Function - relu, leaky_relu, tanh
 parser.add_argument('--activation', '-a', default='relu', type=str, help='activation function')
 
-# Data Preprocessing - 0: mean image, 1: per-channel mean, 2: per-channel mean + per-channel std
-parser.add_argument('--data_preprocessing', '-d', default=0, type=int, help='data preprocessing') 
+# Data Preprocessing - mean image, per-channel mean, per-channel mean + per-channel std
+parser.add_argument('--data_preprocessing', '-d', default='mean_img', type=str, help='data preprocessing') 
 
-# Weight Initialization - 0: Gaussian, 1: Xavier, 2: Kaiming
-parser.add_argument('--weight_init', '-w', default=0, type=int, help='weight initialization')
+# Weight Initialization - Gaussian, Xavier, Kaiming
+parser.add_argument('--weight_init', '-w', default='gaussian', type=str, help='weight initialization')
 
 parser.add_argument('--lr', '-l', default=0.1, type=float, help='learning rate')
 parser.add_argument('--resume', '-r', action='store_true', help='resume from checkpoint')
@@ -44,7 +43,7 @@ mean_img = 0.4734
 mean_per_channel_img = torch.tensor([0.4914, 0.4822, 0.4465])
 std_per_channel_img = torch.tensor([0.2470, 0.2435, 0.2616])
 
-if args.data_preprocessing == 0:
+if args.data_preprocessing == 'mean_img':
     transform_train = transforms.Compose([
         transforms.RandomCrop(32, padding=4),
         transforms.RandomHorizontalFlip(),
@@ -56,7 +55,7 @@ if args.data_preprocessing == 0:
         transforms.Normalize(mean_img, 1),
     ])
 
-elif args.data_preprocessing == 1:
+elif args.data_preprocessing == 'per_channel_mean':
     transform_train = transforms.Compose([
         transforms.RandomCrop(32, padding=4),
         transforms.RandomHorizontalFlip(),
@@ -68,7 +67,7 @@ elif args.data_preprocessing == 1:
         transforms.Normalize(mean_img, 1),
     ])
 
-elif args.data_preprocessing == 2:
+elif args.data_preprocessing == 'per_channel_mean_std':
     transform_train = transforms.Compose([
         transforms.RandomCrop(32, padding=4),
         transforms.RandomHorizontalFlip(),
@@ -79,6 +78,9 @@ elif args.data_preprocessing == 2:
         transforms.ToTensor(),
         transforms.Normalize(mean_per_channel_img, std_per_channel_img),
     ])
+
+else:
+    raise ValueError('Invalid data preprocessing method')
 
 trainset = torchvision.datasets.CIFAR10(
     root='./data', train=True, download=True, transform=transform_train)
@@ -115,7 +117,7 @@ optimizer = optim.SGD(net.parameters(), lr=args.lr,
                       momentum=0.9, weight_decay=5e-4)
 scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.num_epochs)
 
-writer = SummaryWriter('./logs/'+args.activation+'_'+str(args.data_preprocessing)+'_'+str(args.weight_init)+'_'+str(args.num_epochs))
+writer = SummaryWriter('./logs/'+args.activation+'_'+args.data_preprocessing+'_'+args.weight_init+'_'+str(args.num_epochs))
 
 # Training
 def train(epoch):
@@ -136,9 +138,6 @@ def train(epoch):
         _, predicted = outputs.max(1)
         total += targets.size(0)
         correct += predicted.eq(targets).sum().item()
-
-        progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-                     % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
     
     writer.add_scalar('train/loss', train_loss/(batch_idx+1), epoch)
     writer.add_scalar('train/accuracy', 100*correct/total, epoch)
@@ -160,9 +159,6 @@ def test(epoch):
             _, predicted = outputs.max(1)
             total += targets.size(0)
             correct += predicted.eq(targets).sum().item()
-
-            progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-                         % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
     
     writer.add_scalar('test/loss', test_loss/(batch_idx+1), epoch)
     writer.add_scalar('test/accuracy', 100*correct/total, epoch)
@@ -178,7 +174,7 @@ def test(epoch):
         }
         if not os.path.isdir('checkpoint'):
             os.mkdir('checkpoint')
-        torch.save(state, './checkpoint/ckpt.pth')
+        torch.save(state, './checkpoint/'+args.activation+'_'+args.data_preprocessing+'_'+args.weight_init+'.pth')
         best_acc = acc
 
 

@@ -14,7 +14,7 @@ import torch.nn.functional as F
 class BasicBlock(nn.Module):
     expansion = 1
 
-    def __init__(self, in_planes, planes, stride=1, activation=nn.ReLU(), weight_init=nn.init.normal_):
+    def __init__(self, in_planes, planes, stride=1, activation='relu', weight_init='gaussian'):
         super(BasicBlock, self).__init__()
         self.conv1 = nn.Conv2d(
             in_planes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
@@ -31,15 +31,36 @@ class BasicBlock(nn.Module):
                 nn.BatchNorm2d(self.expansion*planes)
             )
 
-        self.activation = activation
-        self.weight_init = weight_init
+        if activation == 'relu':
+            self.activation = nn.ReLU()
+        elif activation == 'leaky_relu':
+            self.activation = nn.LeakyReLU()
+        elif activation == 'tanh':
+            self.activation = nn.Tanh()
+        else:
+            raise ValueError('Invalid activation function')
+
+        if weight_init == 'gaussian':
+            self.weight_init = nn.init.normal_
+        elif weight_init == 'xavier':
+            self.weight_init = nn.init.xavier_normal_
+        elif weight_init == 'kaiming':
+            self.weight_init = nn.init.kaiming_normal_
+        else:
+            raise ValueError('Invalid weight initialization method')
 
         self.weight_init(self.conv1.weight)
         self.weight_init(self.conv2.weight)
-        self.weight_init(self.bn1.weight)
-        self.weight_init(self.bn2.weight)
-        self.weight_init(self.shortcut[0].weight)
-        self.weight_init(self.shortcut[1].weight)
+        nn.init.constant_(self.bn1.weight, 1)
+        nn.init.constant_(self.bn1.bias, 0)
+        nn.init.constant_(self.bn2.weight, 1)
+        nn.init.constant_(self.bn2.bias, 0)
+        for m in self.shortcut:
+            if isinstance(m, nn.Conv2d):
+                self.weight_init(m.weight)
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
 
     def forward(self, x):
         out = self.activation(self.bn1(self.conv1(x)))
@@ -82,15 +103,16 @@ class ResNet(nn.Module):
             raise ValueError('Invalid weight initialization method')
 
         self.weight_init(self.conv1.weight)
-        self.weight_init(self.bn1.weight)
+        nn.init.constant_(self.bn1.weight, 1)
+        nn.init.constant_(self.bn1.bias, 0)
         self.weight_init(self.linear.weight)
-        self.weight_init(self.linear.bias)
+        nn.init.constant_(self.linear.bias, 0)
 
-    def _make_layer(self, block, planes, num_blocks, stride):
+    def _make_layer(self, block, planes, num_blocks, stride, activation='relu', weight_init='gaussian'):
         strides = [stride] + [1]*(num_blocks-1)
         layers = []
         for stride in strides:
-            layers.append(block(self.in_planes, planes, stride, activation=self.activation, weight_init=self.weight_init))
+            layers.append(block(self.in_planes, planes, stride, activation=activation, weight_init=weight_init))
             self.in_planes = planes * block.expansion
         return nn.Sequential(*layers)
 
