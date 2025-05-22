@@ -46,18 +46,36 @@ std_per_channel_img = torch.tensor([0.2470, 0.2435, 0.2616])
 
 if args.data_preprocessing == 0:
     transform_train = transforms.Compose([
+        transforms.RandomCrop(32, padding=4),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize(mean_img, 1),
+    ])
+    transform_test = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize(mean_img, 1),
     ])
 
 elif args.data_preprocessing == 1:
     transform_train = transforms.Compose([
+        transforms.RandomCrop(32, padding=4),
+        transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
         transforms.Normalize(mean_per_channel_img, torch.tensor([1.0, 1.0, 1.0])),
+    ])
+    transform_test = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize(mean_img, 1),
     ])
 
 elif args.data_preprocessing == 2:
     transform_train = transforms.Compose([
+        transforms.RandomCrop(32, padding=4),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize(mean_per_channel_img, std_per_channel_img),
+    ])
+    transform_test = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize(mean_per_channel_img, std_per_channel_img),
     ])
