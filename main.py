@@ -178,10 +178,12 @@ def test(epoch):
         best_acc = acc
 
 
-for epoch in range(args.num_epochs):
-    train(epoch)
-    test(epoch)
-    scheduler.step()
-    writer.add_scalar('learning_rate', scheduler.get_last_lr()[0], epoch)
+# for epoch in range(args.num_epochs):
+#     train(epoch)
+#     test(epoch)
+#     scheduler.step()
+#     writer.add_scalar('learning_rate', scheduler.get_last_lr()[0], epoch)
+
+print(net)
 
 writer.close()
