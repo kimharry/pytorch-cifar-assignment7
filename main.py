@@ -9,7 +9,6 @@ import torchvision
 import torchvision.transforms as transforms
 
 from torch.utils.tensorboard import SummaryWriter
-from datetime import datetime
 
 import os
 import argparse
@@ -178,12 +177,10 @@ def test(epoch):
         best_acc = acc
 
 
-# for epoch in range(args.num_epochs):
-#     train(epoch)
-#     test(epoch)
-#     scheduler.step()
-#     writer.add_scalar('learning_rate', scheduler.get_last_lr()[0], epoch)
-
-print(net)
+for epoch in range(args.num_epochs):
+    train(epoch)
+    test(epoch)
+    scheduler.step()
+    writer.add_scalar('learning_rate', scheduler.get_last_lr()[0], epoch)
 
 writer.close()
