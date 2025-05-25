@@ -63,7 +63,7 @@ elif args.data_preprocessing == 'per_channel_mean':
     ])
     transform_test = transforms.Compose([
         transforms.ToTensor(),
-        transforms.Normalize(mean_img, 1),
+        transforms.Normalize(mean_per_channel_img, torch.tensor([1.0, 1.0, 1.0])),
     ])
 
 elif args.data_preprocessing == 'per_channel_mean_std':
